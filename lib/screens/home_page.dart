@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/gym.dart';
+import '../services/jsonStorageService.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,6 +11,33 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   List<Gym> gyms = [];
+  final TextEditingController _textController = TextEditingController();
+
+  Future<void> loadGyms() async {
+    final data = await JsonStorageService.loadFile();
+
+    final loadedGyms = data.map((gymMap) {
+      return Gym.fromJson(gymMap);
+    }).toList();
+
+    setState(() {
+      gyms = loadedGyms;
+    });
+  }
+
+  Future<void> addGym() async {
+    final newGym = Gym(name: _textController.text);
+
+    setState(() {
+      gyms.add(newGym);
+    });
+
+    final gymMaps = gyms.map((gym) => gym.toJson()).toList();
+
+    await JsonStorageService.saveFile(gymMaps);
+
+    _textController.clear();
+  }
 
   void addLocation() {
     showModalBottomSheet(
@@ -19,9 +47,10 @@ class _HomePageState extends State<HomePage> {
           height: 200,
           child: Column(
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(16),
                 child: TextField(
+                  controller: _textController,
                   decoration: InputDecoration(
                     labelText: "Gym Name",
                     border: OutlineInputBorder(),
@@ -32,7 +61,10 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 20),
 
               FilledButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.pop(context);
+                  addGym();
+                },
                 child: const Text("Add Gym", style: TextStyle(fontSize: 25)),
               ),
             ],
@@ -40,6 +72,20 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    loadGyms();
+  }
+
+  @override
+  void dispose() {
+    // Clean up the controller when the widget is removed
+    _textController.dispose();
+    super.dispose();
   }
 
   @override
