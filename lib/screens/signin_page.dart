@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iron_track/screens/login_page.dart';
 import 'home_page.dart';
 
 class SigninPage extends StatelessWidget {
@@ -42,7 +43,9 @@ class SigninPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const HomePage()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
                     );
                   },
                   child: const Text("Log In", style: TextStyle(fontSize: 25)),
@@ -58,7 +61,12 @@ class SigninPage extends StatelessWidget {
                 width: double.infinity,
                 height: 55,
                 child: FilledButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HomePage()),
+                    );
+                  },
                   child: const Text("Sign Up", style: TextStyle(fontSize: 25)),
                 ),
               ),
