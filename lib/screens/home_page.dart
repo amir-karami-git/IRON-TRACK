@@ -117,15 +117,52 @@ class _HomePageState extends State<HomePage> {
                   fit: BoxFit.cover,
                 ),
               ),
-              child: Center(
-                child: Text(
-                  gym.name,
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 150, 0, 0),
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+
+              child: Stack(
+                children: [
+                  Center(
+                    child: Text(
+                      gym.name,
+                      style: const TextStyle(
+                        color: Color.fromARGB(255, 150, 0, 0),
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
+
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: PopupMenuButton<String>(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: .circular(20),
+                      ),
+                      icon: const Icon(Icons.more_vert, color: Colors.white),
+                      onSelected: (value) async {
+                        if (value == "delete") {
+                          setState(() {
+                            gyms.removeAt(index);
+                          });
+
+                          final gymMaps = gyms
+                              .map((gym) => gym.toJson())
+                              .toList();
+
+                          await JsonStorageService.saveFile(gymMaps);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem<String>(
+                          height: 20,
+
+                          value: "delete",
+                          child: Text("Delete"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           );
