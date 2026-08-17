@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'home_page.dart';
+import 'login_page.dart';
 import 'signin_page.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class SignupPage extends StatefulWidget {
+  const SignupPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<SignupPage> createState() => _SignupPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   bool _isLoading = false;
   String? _errorMessage;
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -27,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
       _errorMessage = null;
     });
 
-    final error = await AuthService.logIn(
+    final error = await AuthService.signUp(
       _usernameController.text,
       _passwordController.text,
     );
@@ -40,6 +43,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    // Account created — take them straight into the app.
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const HomePage()),
@@ -50,6 +54,7 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
@@ -73,7 +78,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  "Welcome back",
+                  "Create account",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 32,
@@ -82,17 +87,24 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  "Log in to keep tracking your lifts",
+                  "Set up your Iron Track profile",
                   style: TextStyle(color: Colors.white60, fontSize: 15),
                 ),
                 const SizedBox(height: 40),
 
-                _FieldLabel("Username"),
+                const Text(
+                  "Username",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _usernameController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: buildInputDecoration("Enter your username"),
+                  decoration: buildInputDecoration("Choose a username"),
                   textInputAction: TextInputAction.next,
                   validator: (value) => (value == null || value.trim().isEmpty)
                       ? "Please enter a username"
@@ -101,14 +113,20 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 20),
 
-                _FieldLabel("Password"),
+                const Text(
+                  "Password",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   style: const TextStyle(color: Colors.white),
-                  onFieldSubmitted: (_) => _handleLogin(),
-                  decoration: buildInputDecoration("Enter your password")
+                  decoration: buildInputDecoration("At least 4 characters")
                       .copyWith(
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -122,9 +140,53 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ),
-                  validator: (value) => (value == null || value.isEmpty)
-                      ? "Please enter your password"
-                      : null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Please enter a password";
+                    }
+                    if (value.length < 4) {
+                      return "Password must be at least 4 characters";
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+                  "Confirm password",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _confirmController,
+                  obscureText: _obscureConfirm,
+                  style: const TextStyle(color: Colors.white),
+                  onFieldSubmitted: (_) => _handleSignup(),
+                  decoration: buildInputDecoration("Re-enter your password")
+                      .copyWith(
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirm
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.white38,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscureConfirm = !_obscureConfirm,
+                          ),
+                        ),
+                      ),
+                  validator: (value) {
+                    if (value != _passwordController.text) {
+                      return "Passwords don't match";
+                    }
+                    return null;
+                  },
                 ),
 
                 if (_errorMessage != null) ...[
@@ -162,7 +224,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    onPressed: _isLoading ? null : _handleLogin,
+                    onPressed: _isLoading ? null : _handleSignup,
                     child: _isLoading
                         ? const SizedBox(
                             width: 22,
@@ -173,7 +235,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           )
                         : const Text(
-                            "Log In",
+                            "Create Account",
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -182,7 +244,26 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 16),
+
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Already have an account? Log in",
+                      style: TextStyle(color: Colors.white60),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -190,53 +271,4 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-}
-
-/// Shared label widget used by both login and signup forms.
-class _FieldLabel extends StatelessWidget {
-  final String text;
-  const _FieldLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Colors.white70,
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-}
-
-/// Shared input decoration so login + signup fields look identical.
-InputDecoration buildInputDecoration(String hint) {
-  return InputDecoration(
-    hintText: hint,
-    hintStyle: const TextStyle(color: Colors.white38),
-    filled: true,
-    fillColor: kFieldFill,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide.none,
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide.none,
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: kAccent, width: 1.5),
-    ),
-    errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-    ),
-    focusedErrorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-    ),
-  );
 }

@@ -12,7 +12,10 @@ class IronTrack extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 150, 0, 0),
+          brightness: Brightness.dark,
         ),
+        scaffoldBackgroundColor: Colors.black,
+        useMaterial3: true,
       ),
       home: const SigninPage(),
     );
