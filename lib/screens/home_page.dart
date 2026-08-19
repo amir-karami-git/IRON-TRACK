@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/gym.dart';
 import '../services/auth_service.dart';
 import '../services/json_storage_service.dart';
+import 'gym_detail_page.dart';
 import 'signin_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -42,7 +43,9 @@ class _HomePageState extends State<HomePage> {
     if (name.isEmpty) return;
 
     setState(() {
-      gyms.add(Gym(name: name));
+      gyms.add(
+        Gym(id: DateTime.now().microsecondsSinceEpoch.toString(), name: name),
+      );
     });
 
     await _persistGyms();
@@ -449,7 +452,13 @@ class _HomePageState extends State<HomePage> {
   Widget _buildGymCard(Gym gym, int index) {
     return GestureDetector(
       onTap: () {
-        // Open this gym later
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                GymDetailPage(username: widget.username, gym: gym),
+          ),
+        );
       },
       child: Container(
         height: 180,

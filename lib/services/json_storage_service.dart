@@ -45,4 +45,21 @@ class JsonStorageService {
       await file.delete();
     }
   }
+
+  /// Deletes every file whose name starts with [prefix]. Used to wipe all
+  /// of a user's per-gym workout files in one go when they delete their
+  /// account, without needing to know each gym id up front.
+  static Future<void> deleteFilesWithPrefix(String prefix) async {
+    final directory = await getApplicationDocumentsDirectory();
+    if (!await directory.exists()) return;
+
+    await for (final entity in directory.list()) {
+      if (entity is File) {
+        final name = entity.uri.pathSegments.last;
+        if (name.startsWith(prefix)) {
+          await entity.delete();
+        }
+      }
+    }
+  }
 }

@@ -28,11 +28,17 @@ class AuthService {
   /// account's data lives in its own file (e.g. "Nick" -> "gyms_nick.json").
   /// Lower-cased so login is effectively case-insensitive for file lookup.
   static String gymsFileNameFor(String username) {
-    final safe = username.trim().toLowerCase().replaceAll(
-      RegExp(r'[^a-z0-9_\-]'),
-      '_',
-    );
-    return 'gyms_$safe.json';
+    return 'gyms_${_sanitize(username)}.json';
+  }
+
+  /// Each gym's workout history is its own file, scoped to both the user
+  /// and that specific gym, e.g. "workouts_nick_1734567890123456.json".
+  static String workoutsFileNameFor(String username, String gymId) {
+    return 'workouts_${_sanitize(username)}_${_sanitize(gymId)}.json';
+  }
+
+  static String _sanitize(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_\-]'), '_');
   }
 
   /// Creates a new account. Returns null on success, or an error message.
@@ -105,8 +111,12 @@ class AuthService {
     final removedUser = users.removeAt(matchIndex);
     await _saveUsers(users);
 
-    // Wipe every piece of data tied to this account.
+    // Wipe every piece of data tied to this account: their gym list,
+    // and every per-gym workout file they've ever created.
     await JsonStorageService.deleteFile(gymsFileNameFor(removedUser.username));
+    await JsonStorageService.deleteFilesWithPrefix(
+      'workouts_${_sanitize(removedUser.username)}_',
+    );
 
     return null;
   }
