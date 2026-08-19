@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import '../models/gym.dart';
+import '../services/auth_service.dart';
 import '../services/json_storage_service.dart';
 import 'signin_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String username;
+
+  const HomePage({super.key, required this.username});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  static const String _gymsFile = 'gyms.json';
+  // Each account's gyms live in their own file, e.g. "gyms_alice.json",
+  // so two users never read or overwrite each other's data.
+  late final String _gymsFile = AuthService.gymsFileNameFor(widget.username);
 
   List<Gym> gyms = [];
   bool _isLoading = true;
@@ -60,6 +65,149 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: const Color.fromARGB(255, 40, 40, 40),
         behavior: SnackBarBehavior.floating,
       ),
+    );
+  }
+
+  void _logOut() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const SigninPage()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final passwordController = TextEditingController();
+    String? errorMessage;
+    bool isDeleting = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !isDeleting,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Future<void> handleConfirm() async {
+              if (passwordController.text.isEmpty) {
+                setDialogState(() {
+                  errorMessage = "Enter your password to confirm";
+                });
+                return;
+              }
+
+              setDialogState(() {
+                isDeleting = true;
+                errorMessage = null;
+              });
+
+              final error = await AuthService.deleteAccount(
+                widget.username,
+                passwordController.text,
+              );
+
+              if (error != null) {
+                setDialogState(() {
+                  isDeleting = false;
+                  errorMessage = error;
+                });
+                return;
+              }
+
+              if (!mounted) return;
+              Navigator.pop(dialogContext); // close the dialog
+
+              // Account and all their data are gone — send them back to
+              // the very start, clearing the whole navigation stack.
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SigninPage()),
+                (route) => false,
+              );
+            }
+
+            return AlertDialog(
+              backgroundColor: const Color.fromARGB(255, 22, 22, 22),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                "Delete your account?",
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "This permanently deletes your account and every gym "
+                    "you've saved. This can't be undone.",
+                    style: TextStyle(color: Colors.white60, fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    autofocus: true,
+                    enabled: !isDeleting,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: "Confirm your password",
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: const Color.fromARGB(255, 34, 34, 34),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isDeleting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: Colors.white60),
+                  ),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                  ),
+                  onPressed: isDeleting ? null : handleConfirm,
+                  child: isDeleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text("Delete"),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -180,25 +328,66 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        title: const Text(
-          "My Gyms",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "My Gyms",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+            ),
+            Text(
+              widget.username,
+              style: const TextStyle(color: Colors.white38, fontSize: 13),
+            ),
+          ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white70),
-            tooltip: "Log out",
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const SigninPage()),
-                (route) => false,
-              );
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white70),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            onSelected: (value) {
+              if (value == "logout") {
+                _logOut();
+              } else if (value == "delete_account") {
+                _confirmDeleteAccount();
+              }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: "logout",
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 10),
+                    Text("Log Out"),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: "delete_account",
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_forever,
+                      size: 20,
+                      color: Colors.redAccent,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Delete Account",
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -35,4 +35,14 @@ class JsonStorageService {
     final List<dynamic> data = jsonDecode(jsonString);
     return data.cast<Map<String, dynamic>>();
   }
+
+  /// Deletes the file entirely (used when a user deletes their account and
+  /// we need to wipe their personal data). Safe to call even if the file
+  /// was never created.
+  static Future<void> deleteFile(String fileName) async {
+    final file = await _getFile(fileName);
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
 }

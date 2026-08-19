@@ -46,7 +46,10 @@ class _SignupPageState extends State<SignupPage> {
     // Account created — take them straight into the app.
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const HomePage()),
+      MaterialPageRoute(
+        builder: (context) =>
+            HomePage(username: _usernameController.text.trim()),
+      ),
     );
   }
 

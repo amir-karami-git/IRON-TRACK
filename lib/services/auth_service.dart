@@ -24,6 +24,17 @@ class AuthService {
     await JsonStorageService.saveFile(_usersFile, data);
   }
 
+  /// Turns a username into a filesystem-safe, unique file name so each
+  /// account's data lives in its own file (e.g. "Nick" -> "gyms_nick.json").
+  /// Lower-cased so login is effectively case-insensitive for file lookup.
+  static String gymsFileNameFor(String username) {
+    final safe = username.trim().toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9_\-]'),
+      '_',
+    );
+    return 'gyms_$safe.json';
+  }
+
   /// Creates a new account. Returns null on success, or an error message.
   static Future<String?> signUp(String username, String password) async {
     final trimmedUsername = username.trim();
@@ -69,6 +80,33 @@ class AuthService {
     if (matches.isEmpty) {
       return "Incorrect username or password";
     }
+
+    return null;
+  }
+
+  /// Permanently deletes an account: removes it from users.json AND wipes
+  /// that user's personal data file. Requires the correct password as a
+  /// safety check. Returns null on success, or an error message.
+  static Future<String?> deleteAccount(String username, String password) async {
+    final users = await _loadUsers();
+    final hashedAttempt = _hashPassword(password);
+    final trimmedUsername = username.trim().toLowerCase();
+
+    final matchIndex = users.indexWhere(
+      (u) =>
+          u.username.toLowerCase() == trimmedUsername &&
+          u.password == hashedAttempt,
+    );
+
+    if (matchIndex == -1) {
+      return "Incorrect username or password";
+    }
+
+    final removedUser = users.removeAt(matchIndex);
+    await _saveUsers(users);
+
+    // Wipe every piece of data tied to this account.
+    await JsonStorageService.deleteFile(gymsFileNameFor(removedUser.username));
 
     return null;
   }
